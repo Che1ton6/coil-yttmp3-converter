@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YT Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ff2d2d;
+      --red-dark: #c00;
+      --bg: #0a0a0a;
+      --card: #141414;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --muted: #777;
+      --success: #22c55e;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 48px 16px; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 2px; color: var(--red); line-height: 1; }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; margin-bottom: 36px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 640px; }
+
+    /* URL input */
+    .input-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    input[type="text"] { width: 100%; padding: 13px 16px; border-radius: 10px; border: 1px solid var(--border); background: #0f0f0f; color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border 0.2s; }
+    input[type="text"]:focus { border-color: var(--red); }
+    .path-row { display: flex; gap: 8px; align-items: center; }
+    .path-row input { flex: 1; }
+    .path-status { font-size: 12px; margin-top: 6px; min-height: 16px; }
+    .path-status.ok { color: var(--success); }
+    .path-status.err { color: var(--red); }
+
+    /* Format tabs */
+    .tabs { display: flex; gap: 8px; margin: 20px 0 16px; }
+    .tab { flex: 1; padding: 11px; border-radius: 10px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .tab.active { border-color: var(--red); color: var(--red); background: rgba(255,45,45,0.07); }
+
+    /* Quality selector */
+    .quality-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+    .q-btn { padding: 9px 4px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .q-btn.active { border-color: var(--red); color: var(--text); background: rgba(255,45,45,0.07); }
+
+    /* Download button */
+    .btn-download { width: 100%; padding: 15px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; cursor: pointer; transition: background 0.2s; }
+    .btn-download:hover { background: var(--red-dark); }
+    .btn-download:disabled { background: #333; color: #555; cursor: not-allowed; }
+
+    /* Progress */
+    #status { margin-top: 20px; font-size: 14px; color: var(--muted); text-align: center; min-height: 20px; }
+    .bar-wrap { background: #222; border-radius: 99px; height: 6px; margin-top: 10px; overflow: hidden; display: none; }
+    .bar { height: 6px; border-radius: 99px; background: var(--red); width: 0%; transition: width 0.4s ease; }
+
+    /* File list */
+    #file-list { margin-top: 28px; }
+    #file-list h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .file-item { background: #0f0f0f; border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .file-item span { font-size: 13px; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item a { color: var(--red); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+    .folder-header { color: var(--red); font-weight: 600; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .folder-block { background: #0f0f0f; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+    .folder-file { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--border); }
+    .folder-file:first-of-type { border-top: none; margin-top: 8px; }
+    .folder-file span { font-size: 12px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%; }
+    .folder-file a { color: var(--red); font-size: 12px; font-weight: 600; text-decoration: none; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  </style>
+</head>
+<body>
+  <h1>YT DOWNLOADER</h1>
+  <p class="subtitle">Videos & playlists — MP3 or MP4, any quality</p>
+
+  <div class="card">
+    <!-- URL -->
+    <div class="input-label">YouTube URL</div>
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=... or playlist URL" />
+
+    <hr class="divider">
+
+    <!-- Save location -->
+    <div class="input-label" style="margin-bottom:8px">Save Location <span style="color:#444;font-weight:400;text-transform:none;letter-spacing:0">(leave blank for default downloads folder)</span></div>
+    <div class="path-row">
+      <input type="text" id="save-path" placeholder="e.g. C:\Users\You\Music" oninput="validatePath()" />
+    </div>
+    <div class="path-status" id="path-status"></div>
+
+    <hr class="divider">
+
+    <!-- Format -->
+    <div class="input-label">Format</div>
+    <div class="tabs">
+      <button class="tab active" onclick="setFormat('mp3', this)">🎵 MP3 — Audio</button>
+      <button class="tab" onclick="setFormat('mp4', this)">🎥 MP4 — Video</button>
+    </div>
+
+    <!-- Quality -->
+    <div class="input-label" style="margin-bottom:10px">Quality</div>
+    <div class="quality-grid" id="quality-grid"></div>
+
+    <!-- Download -->
+    <button class="btn-download" id="dl-btn" onclick="startDownload()">DOWNLOAD</button>
+
+    <div id="status"></div>
+    <div class="bar-wrap" id="bar-wrap"><div class="bar" id="bar"></div></div>
+
+    <div id="file-list"></div>
+  </div>
+
+  <script>
+    let currentFormat = "mp3";
+    let currentQuality = "320";
+    let pollInterval;
+
+    const qualities = {
+      mp3: [
+        { label: "320 kbps", val: "320" },
+        { label: "192 kbps", val: "192" },
+        { label: "128 kbps", val: "128" },
+      ],
+      mp4: [
+        { label: "8K (4320p)", val: "4320" },
+        { label: "4K (2160p)", val: "2160" },
+        { label: "1080p HD", val: "1080" },
+        { label: "720p HD",  val: "720"  },
+        { label: "480p",     val: "480"  },
+        { label: "360p",     val: "360"  },
+      ]
+    };
+
+    function renderQualities() {
+      const grid = document.getElementById("quality-grid");
+      const list = qualities[currentFormat];
+      grid.innerHTML = list.map((q, i) =>
+        `<button class="q-btn ${i === 0 ? 'active' : ''}" onclick="setQuality('${q.val}', this)">${q.label}</button>`
+      ).join("");
+      currentQuality = list[0].val;
+    }
+
+    function setFormat(fmt, el) {
+      currentFormat = fmt;
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      el.classList.add("active");
+      renderQualities();
+    }
+
+    function setQuality(val, el) {
+      currentQuality = val;
+      document.querySelectorAll(".q-btn").forEach(b => b.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    let pathTimer;
+    function validatePath() {
+      clearTimeout(pathTimer);
+      const path = document.getElementById("save-path").value.trim();
+      const status = document.getElementById("path-status");
+      if (!path) { status.textContent = ""; return; }
+      pathTimer = setTimeout(async () => {
+        const fd = new FormData();
+        fd.append("path", path);
+        const res = await fetch("/validate-path", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.valid) {
+          status.textContent = "✓ Valid folder";
+          status.className = "path-status ok";
+        } else {
+          status.textContent = "✗ Folder not found";
+          status.className = "path-status err";
+        }
+      }, 600);
+    }
+
+    async function startDownload() {
+      const url = document.getElementById("url").value.trim();
+      const savePath = document.getElementById("save-path").value.trim();
+      if (!url) { alert("Please enter a URL!"); return; }
+
+      const btn = document.getElementById("dl-btn");
+      btn.disabled = true;
+      document.getElementById("status").innerText = "⏳ Starting download...";
+      document.getElementById("bar-wrap").style.display = "block";
+      document.getElementById("bar").style.width = "0%";
+
+      const fd = new FormData();
+      fd.append("url", url);
+      fd.append("format", currentFormat);
+      fd.append("quality", currentQuality);
+      fd.append("save_path", savePath);
+
+      const res = await fetch("/download", { method: "POST", body: fd });
+      const data = await res.json();
+      pollInterval = setInterval(() => checkProgress(data.task_id, btn), 1500);
+    }
+
+    async function checkProgress(taskId, btn) {
+      const res = await fetch("/progress/" + encodeURIComponent(taskId));
+      const data = await res.json();
+      const file = data.current_file ? ` — ${data.current_file}` : "";
+
+      if (data.status === "downloading") {
+        document.getElementById("status").innerText = `⬇️ Downloading... ${data.percent}${file}`;
+        document.getElementById("bar").style.width = data.percent;
+      } else if (data.status === "processing") {
+        document.getElementById("status").innerText = "⚙️ Converting...";
+        document.getElementById("bar").style.width = "90%";
+      } else if (data.status === "done") {
+        clearInterval(pollInterval);
+        document.getElementById("status").innerText = `✅ Done! Saved to: ${data.save_path || "downloads folder"}`;
+        document.getElementById("bar").style.width = "100%";
+        btn.disabled = false;
+        loadFiles();
+      } else if (data.status === "error") {
+        clearInterval(pollInterval);
+        document.getElementById("status").innerText = "❌ Error: " + data.error;
+        btn.disabled = false;
+      }
+    }
+
+    async function loadFiles() {
+      const res = await fetch("/files");
+      const items = await res.json();
+      const list = document.getElementById("file-list");
+      if (items.length === 0) { list.innerHTML = ""; return; }
+      let html = "<h3>📁 Downloaded Files</h3>";
+      items.forEach(item => {
+        if (item.type === "folder") {
+          html += `<div class="folder-block">
+            <div class="folder-header">📂 ${item.name}</div>
+            ${item.files.map(f => `
+              <div class="folder-file">
+                <span>${f}</span>
+                <a href="/downloads/${encodeURIComponent(item.name)}/${encodeURIComponent(f)}">Save</a>
+              </div>`).join("")}
+          </div>`;
+        } else {
+          html += `<div class="file-item">
+            <span>${item.name}</span>
+            <a href="/downloads/${encodeURIComponent(item.name)}">Save</a>
+          </div>`;
+        }
+      });
+      list.innerHTML = html;
+    }
+
+    renderQualities();
+    loadFiles();
+  </script>
+</body>
+</html>
