@@ -2,7 +2,13 @@ import customtkinter as ctk
 from tkinter import filedialog
 import yt_dlp
 import os
+import sys
 import threading
+
+def _bundled_ffmpeg():
+    if getattr(sys, "frozen", False):
+        return os.path.join(sys._MEIPASS, "bin")
+    return None
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
@@ -317,6 +323,7 @@ class App(ctk.CTk):
                 self.after(0, lambda: self.set_status("⚙️  Converting file..."))
                 self.after(0, lambda: self.progress_bar.set(0.95))
 
+        ffmpeg_path = _bundled_ffmpeg()
         if fmt == "mp3":
             ydl_opts = {
                 "format": "bestaudio",
@@ -342,6 +349,8 @@ class App(ctk.CTk):
                 "progress_hooks": [progress_hook],
                 "ignoreerrors": True,
             }
+        if ffmpeg_path:
+            ydl_opts["ffmpeg_location"] = ffmpeg_path
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -1,89 +1,37 @@
-# YT Downloader
+# Coil Content Converter
 
-A desktop app to download YouTube videos and playlists as MP3 or MP4, at any quality — built with Python.
+A desktop app to download YouTube videos and playlists as MP3 or MP4, at any quality — built with Python and customtkinter.
+
+---
+
+## Download
+
+**No Python or FFmpeg installation required.**
+
+1. Go to the [Releases](../../releases) page
+2. Download `CoilContentConverter.exe` under the latest release
+3. Double-click to run — that's it
 
 ---
 
 ## What It Does
 
 - Download any YouTube video or playlist by pasting its URL
+- Right-click the URL field to paste directly
 - Choose between MP3 (audio) or MP4 (video)
 - Select your preferred quality (320kbps / 192kbps / 128kbps for MP3 — or 4K / 1080p / 720p / 480p / 360p for MP4)
 - Choose exactly where to save your files using a folder browser
 - Playlists automatically get saved into their own named folder
+- Unavailable videos in a playlist are skipped automatically
 - Files are named with their quality so multiple versions never overwrite each other
 - A popup appears when done, letting you open the folder or start a new download
-
----
-
-## Requirements
-
-Before running the app, make sure you have the following installed on your computer:
-
-### 1. Python 3.x
-Download from: https://python.org/downloads
-
-> During installation, tick **"Add Python to PATH"** — this is important!
-
-Verify it's installed by opening a terminal and typing:
-```
-python --version
-```
-
-### 2. ffmpeg
-Required for MP3 conversion. Install it via Windows terminal:
-```
-winget install ffmpeg
-```
-
-Verify it's installed:
-```
-ffmpeg -version
-```
-
-### 3. VS Code (recommended)
-Download from: https://code.visualstudio.com
-
----
-
-## Setup Instructions
-
-### Step 1 — Open the project folder in VS Code
-Go to **File → Open Folder** and select the `YtMp3 Converter` folder.
-
-### Step 2 — Open the terminal
-Press **Ctrl + `** (backtick key, top-left under Escape).
-
-### Step 3 — Activate the virtual environment
-```
-venv\Scripts\activate
-```
-
-You should see `(venv)` appear at the start of the terminal line.
-
-> If you get a permissions error, run this first:
-> ```
-> Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-> ```
-> Then try activating again.
-
-### Step 4 — Install the required packages (first time only)
-```
-pip install customtkinter yt-dlp
-```
-
-### Step 5 — Run the app
-```
-python app.py
-```
-
-A desktop window will open and the app is ready to use.
+- Two visual themes: Default (dark red) and CoilWhiner (dark green) — switch anytime, even mid-download
 
 ---
 
 ## How to Use
 
-1. Paste a YouTube video or playlist URL into the **YouTube URL** field
+1. Paste a YouTube video or playlist URL into the **YouTube URL** field (or right-click → Paste)
 2. Choose a **Save Location** using the Browse button, or leave it as the default `downloads` folder
 3. Select your **Format** — MP3 for audio, MP4 for video
 4. Select your **Quality**
@@ -104,48 +52,59 @@ Bohemian Rhapsody [320kbps].mp3
 Bohemian Rhapsody [1080p].mp4
 ```
 
-This means you can download the same video at different qualities without them overwriting each other.
+---
+
+## Running from Source
+
+If you'd prefer to run from source instead of using the exe:
+
+### Requirements
+- Python 3.x
+- FFmpeg (install via `winget install ffmpeg`)
+
+### Setup
+
+```bash
+# Clone the repo
+git clone https://github.com/Che1ton6/coil-yttmp3-converter.git
+cd coil-yttmp3-converter
+
+# Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
+pip install customtkinter yt-dlp
+
+# Run
+python app.py
+```
 
 ---
 
-## Playlist Downloads
+## Building the Exe Yourself
 
-If you paste a playlist URL, the app will:
-1. Automatically detect it's a playlist
-2. Create a folder named after the playlist inside your save location
-3. Download every video in the playlist into that folder
-
----
-
-## Project Structure
-
+```bash
+pip install pyinstaller
+pyinstaller --onefile --windowed --name "CoilContentConverter" ^
+  --add-binary "bin\ffmpeg.exe;bin" ^
+  --add-binary "bin\ffprobe.exe;bin" ^
+  --collect-data customtkinter ^
+  --collect-all yt_dlp ^
+  app.py
 ```
-YtMp3 Converter/
-├── app.py              ← Main application code
-├── downloads/          ← Default folder for downloaded files
-├── templates/          ← (Unused in desktop version)
-└── venv/               ← Python virtual environment
-```
+
+The exe will appear in the `dist/` folder.
 
 ---
 
 ## Keeping It Up to Date
 
-YouTube occasionally changes how it works, which can cause downloads to fail. If that happens, update yt-dlp by running:
-```
+YouTube occasionally changes how it works. If downloads start failing, update yt-dlp:
+
+```bash
 pip install --upgrade yt-dlp
 ```
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---|---|
-| `No module named 'flask'` or `customtkinter` | Activate venv first: `venv\Scripts\activate`, then `pip install customtkinter yt-dlp` |
-| `ffmpeg not recognized` | Restart VS Code after installing ffmpeg |
-| Download fails or errors | Run `pip install --upgrade yt-dlp` |
-| App window doesn't open | Make sure you're running `python app.py` with venv active |
 
 ---
 

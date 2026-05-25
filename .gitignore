@@ -1,6 +1,11 @@
 venv/
 downloads/
+bin/
+build/
+dist/
+*.spec
 __pycache__/
 *.pyc
 *.pyo
 .env
+.claude/
