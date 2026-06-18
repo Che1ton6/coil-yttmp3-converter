@@ -57,6 +57,26 @@ THEMES = {
         "font_body":    "Courier New",
         "title_text":   "COIL CONTENT CONVERTER",
         "title_size":   28,
+    },
+    "eques": {
+        "bg":           "#000000",
+        "card":         "#0C0C10",
+        "border":       "#3A1A5A",
+        "input_bg":     "#080808",
+        "accent":       "#00C8FF",
+        "accent_hover": "#0099CC",
+        "accent_text":  "#000000",
+        "btn_secondary":"#140A22",
+        "btn_sec_hover":"#1E0F33",
+        "btn_sec_text": "#9966CC",
+        "text":         "#FFFFFF",
+        "text_muted":   "#7B5FAA",
+        "text_label":   "#6A4F99",
+        "success":      "#00C8FF",
+        "font_family":  "Arial Black",
+        "font_body":    "Arial",
+        "title_text":   "COIL CONTENT CONVERTER",
+        "title_size":   28,
     }
 }
 
@@ -103,15 +123,19 @@ class App(ctk.CTk):
             text_color=t["accent"])
         self.title_label.pack(side="left")
 
-        self.theme_btn = ctk.CTkButton(
+        _display = {"default": "Default", "coilwhiner": "CoilWhiner", "eques": "Eques"}
+        self.theme_menu = ctk.CTkOptionMenu(
             top,
-            text="⟳  CoilWhiner" if self.current_theme == "default" else "⟳  Default",
+            values=["Default", "CoilWhiner", "Eques"],
+            command=self.set_theme,
             width=130, height=32, corner_radius=5,
-            fg_color=t["btn_secondary"], hover_color=t["btn_sec_hover"],
-            text_color=t["btn_sec_text"],
-            font=ctk.CTkFont(family=t["font_body"], size=12),
-            command=self.toggle_theme)
-        self.theme_btn.pack(side="right")
+            fg_color=t["btn_secondary"], button_color=t["btn_sec_hover"],
+            button_hover_color=t["accent"], text_color=t["btn_sec_text"],
+            dropdown_fg_color=t["card"], dropdown_hover_color=t["btn_sec_hover"],
+            dropdown_text_color=t["text"],
+            font=ctk.CTkFont(family=t["font_body"], size=12))
+        self.theme_menu.set(_display[self.current_theme])
+        self.theme_menu.pack(side="right")
 
         self.subtitle_label = ctk.CTkLabel(
             self, text="YouTube Edition",
@@ -227,12 +251,17 @@ class App(ctk.CTk):
         except Exception:
             pass
 
-    # ── Theme toggle ───────────────────────────────────────────────────────────
-    def toggle_theme(self):
+    # ── Theme select ───────────────────────────────────────────────────────────
+    def set_theme(self, selection):
+        _key = {"Default": "default", "CoilWhiner": "coilwhiner", "Eques": "eques"}
+        chosen = _key.get(selection, "default")
+        if chosen == self.current_theme:
+            return
+
         url = self.url_entry.get()
         downloading = str(self.dl_btn.cget("state")) == "disabled"
 
-        self.current_theme = "coilwhiner" if self.current_theme == "default" else "default"
+        self.current_theme = chosen
         self.t = THEMES[self.current_theme]
         for widget in self.winfo_children():
             widget.destroy()
