@@ -362,7 +362,6 @@ class App(ctk.CTk):
             "extractor_args": {
                 "youtube": {"player_client": ["web", "android", "ios"]}
             },
-            "cookiesfrombrowser": ("chrome",),
         }
 
         if fmt == "mp3":
@@ -391,6 +390,8 @@ class App(ctk.CTk):
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
 
+        COOKIE_ERRORS = ("sign in", "bot", "429", "confirm you're not a bot", "login required")
+
         def try_download(opts):
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -400,12 +401,24 @@ class App(ctk.CTk):
 
         try:
             try:
+                # First attempt: no cookies (works for most public videos)
                 try_download(ydl_opts)
             except Exception as e:
-                # Retry without cookies if browser not available
-                if "cookiesfrombrowser" in str(e) or "chrome" in str(e).lower():
-                    fallback = {k: v for k, v in ydl_opts.items() if k != "cookiesfrombrowser"}
-                    try_download(fallback)
+                err_lower = str(e).lower()
+                # If YouTube is blocking, retry with browser cookies
+                if any(k in err_lower for k in COOKIE_ERRORS):
+                    self.after(0, lambda: self.set_status("⏳  Retrying with browser cookies..."))
+                    for browser in ("chrome", "firefox", "edge"):
+                        try:
+                            opts_with_cookies = {**ydl_opts, "cookiesfrombrowser": (browser,)}
+                            try_download(opts_with_cookies)
+                            break
+                        except Exception as ce:
+                            if "DPAPI" in str(ce) or browser == "edge":
+                                continue
+                            raise
+                    else:
+                        raise e
                 else:
                     raise
             self._progress = 1.0
