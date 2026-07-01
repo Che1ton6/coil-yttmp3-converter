@@ -375,11 +375,11 @@ class App(ctk.CTk):
             }
         else:
             quality_map = {
-                "2160": f"bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio",
-                "1080": f"bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio",
-                "720":  f"bestvideo[height<=720]+bestaudio/bestvideo+bestaudio",
-                "480":  f"bestvideo[height<=480]+bestaudio/bestvideo+bestaudio",
-                "360":  f"bestvideo[height<=360]+bestaudio/bestvideo+bestaudio",
+                "2160": "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best",
+                "1080": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
+                "720":  "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best",
+                "480":  "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/bestvideo+bestaudio/best",
+                "360":  "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/bestvideo+bestaudio/best",
             }
             ydl_opts = {
                 **common_opts,
