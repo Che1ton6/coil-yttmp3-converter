@@ -415,10 +415,9 @@ class App(ctk.CTk):
 
         def try_download(opts):
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                if not info:
-                    raise Exception("Could not retrieve video info. The video may be unavailable or private.")
-                ydl.download([url])
+                ret = ydl.download([url])
+                if ret != 0:
+                    raise Exception("Download failed — video may be unavailable, private, or region-locked.")
 
         files_before = set(os.listdir(output_folder))
 
