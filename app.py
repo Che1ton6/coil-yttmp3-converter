@@ -353,43 +353,69 @@ class App(ctk.CTk):
                 self.after(0, lambda: self.progress_bar.set(0.95))
 
         ffmpeg_path = _bundled_ffmpeg()
+        common_opts = {
+            "progress_hooks": [progress_hook],
+            "retries": 5,
+            "fragment_retries": 5,
+            "extractor_retries": 3,
+            "socket_timeout": 30,
+            "extractor_args": {
+                "youtube": {"player_client": ["web", "android", "ios"]}
+            },
+            "cookiesfrombrowser": ("chrome",),
+        }
+
         if fmt == "mp3":
             ydl_opts = {
-                "format": "bestaudio",
+                **common_opts,
+                "format": "bestaudio/best",
                 "outtmpl": os.path.join(output_folder, f"%(title)s [{quality}kbps].%(ext)s"),
                 "postprocessors": [{"key": "FFmpegExtractAudio",
                                     "preferredcodec": "mp3",
                                     "preferredquality": quality}],
-                "progress_hooks": [progress_hook],
-                "ignoreerrors": True,
             }
         else:
             quality_map = {
-                "2160": "bestvideo[height<=2160]+bestaudio",
-                "1080": "bestvideo[height<=1080]+bestaudio",
-                "720":  "bestvideo[height<=720]+bestaudio",
-                "480":  "bestvideo[height<=480]+bestaudio",
-                "360":  "bestvideo[height<=360]+bestaudio",
+                "2160": f"bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio",
+                "1080": f"bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio",
+                "720":  f"bestvideo[height<=720]+bestaudio/bestvideo+bestaudio",
+                "480":  f"bestvideo[height<=480]+bestaudio/bestvideo+bestaudio",
+                "360":  f"bestvideo[height<=360]+bestaudio/bestvideo+bestaudio",
             }
             ydl_opts = {
-                "format": quality_map.get(quality, "bestvideo+bestaudio"),
+                **common_opts,
+                "format": quality_map.get(quality, "bestvideo+bestaudio/best"),
                 "outtmpl": os.path.join(output_folder, f"%(title)s [{quality}p].%(ext)s"),
                 "merge_output_format": "mp4",
-                "progress_hooks": [progress_hook],
-                "ignoreerrors": True,
             }
         if ffmpeg_path:
             ydl_opts["ffmpeg_location"] = ffmpeg_path
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        def try_download(opts):
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    raise Exception("Could not retrieve video info. The video may be unavailable or private.")
                 ydl.download([url])
+
+        try:
+            try:
+                try_download(ydl_opts)
+            except Exception as e:
+                # Retry without cookies if browser not available
+                if "cookiesfrombrowser" in str(e) or "chrome" in str(e).lower():
+                    fallback = {k: v for k, v in ydl_opts.items() if k != "cookiesfrombrowser"}
+                    try_download(fallback)
+                else:
+                    raise
             self._progress = 1.0
             self.after(0, lambda: self.progress_bar.set(1.0))
             self.after(0, lambda: self.set_status(f"✅  Done! Saved to: {output_folder}", self.t["success"]))
             self.after(0, lambda: self.show_complete_dialog(output_folder))
         except Exception as e:
-            self.after(0, lambda err=str(e): self.set_status(f"❌  Error: {err}", "#ff6060"))
+            self._progress = 0.0
+            self.after(0, lambda: self.progress_bar.set(0))
+            self.after(0, lambda err=str(e): self.set_status(f"❌  {err[:120]}", "#ff6060"))
         finally:
             self.after(0, lambda: self.dl_btn.configure(state="normal"))
 
