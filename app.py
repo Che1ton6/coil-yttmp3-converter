@@ -419,7 +419,8 @@ class App(ctk.CTk):
                 if ret != 0:
                     raise Exception("Download failed — video may be unavailable, private, or region-locked.")
 
-        files_before = set(os.listdir(output_folder))
+        import time
+        download_start = time.time() - 1  # 1s buffer for filesystem timing
 
         try:
             try:
@@ -444,11 +445,14 @@ class App(ctk.CTk):
                 else:
                     raise
 
-            # Verify a file was actually saved
-            files_after = set(os.listdir(output_folder))
-            new_files = [f for f in files_after - files_before if not f.endswith(".part")]
-            if not new_files:
-                raise Exception("Download appeared to succeed but no file was saved. ffmpeg may be missing or the format is unsupported.")
+            # Verify a file was saved or modified since download started
+            saved_files = [
+                f for f in os.listdir(output_folder)
+                if not f.endswith(".part") and
+                os.path.getmtime(os.path.join(output_folder, f)) >= download_start
+            ]
+            if not saved_files:
+                raise Exception("Download appeared to succeed but no file was saved. Try a different quality or format.")
 
             self._progress = 1.0
             self.after(0, lambda: self.progress_bar.set(1.0))
