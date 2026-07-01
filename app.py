@@ -353,38 +353,59 @@ class App(ctk.CTk):
                 self.after(0, lambda: self.progress_bar.set(0.95))
 
         ffmpeg_path = _bundled_ffmpeg()
+        # Check if ffmpeg is available
+        ffmpeg_available = ffmpeg_path is not None or any(
+            os.path.isfile(os.path.join(p, "ffmpeg.exe"))
+            for p in os.environ.get("PATH", "").split(os.pathsep)
+        )
+
         common_opts = {
             "progress_hooks": [progress_hook],
             "retries": 5,
             "fragment_retries": 5,
             "extractor_retries": 3,
             "socket_timeout": 30,
+            "restrictfilenames": True,
             "extractor_args": {
                 "youtube": {"player_client": ["web", "android", "ios"]}
             },
         }
 
         if fmt == "mp3":
+            if not ffmpeg_available:
+                self.after(0, lambda: self.set_status("❌  ffmpeg not found — required for MP3. Install from ffmpeg.org", "#ff6060"))
+                self.after(0, lambda: self.dl_btn.configure(state="normal"))
+                return
             ydl_opts = {
                 **common_opts,
                 "format": "bestaudio/best",
-                "outtmpl": os.path.join(output_folder, f"%(title)s [{quality}kbps].%(ext)s"),
+                "outtmpl": os.path.join(output_folder, "%(title)s.%(ext)s"),
                 "postprocessors": [{"key": "FFmpegExtractAudio",
                                     "preferredcodec": "mp3",
                                     "preferredquality": quality}],
             }
         else:
-            quality_map = {
-                "2160": "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best",
-                "1080": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
-                "720":  "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best",
-                "480":  "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/bestvideo+bestaudio/best",
-                "360":  "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/bestvideo+bestaudio/best",
-            }
+            if ffmpeg_available:
+                quality_map = {
+                    "2160": "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best",
+                    "1080": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best",
+                    "720":  "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best",
+                    "480":  "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best",
+                    "360":  "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best",
+                }
+            else:
+                # No ffmpeg — use pre-merged single-stream formats only
+                quality_map = {
+                    "2160": "best[height<=2160][ext=mp4]/best[ext=mp4]/best",
+                    "1080": "best[height<=1080][ext=mp4]/best[ext=mp4]/best",
+                    "720":  "best[height<=720][ext=mp4]/best[ext=mp4]/best",
+                    "480":  "best[height<=480][ext=mp4]/best[ext=mp4]/best",
+                    "360":  "best[height<=360][ext=mp4]/best[ext=mp4]/best",
+                }
             ydl_opts = {
                 **common_opts,
-                "format": quality_map.get(quality, "bestvideo+bestaudio/best"),
-                "outtmpl": os.path.join(output_folder, f"%(title)s [{quality}p].%(ext)s"),
+                "format": quality_map.get(quality, "best[ext=mp4]/best"),
+                "outtmpl": os.path.join(output_folder, "%(title)s.%(ext)s"),
                 "merge_output_format": "mp4",
             }
         if ffmpeg_path:
@@ -398,6 +419,8 @@ class App(ctk.CTk):
                 if not info:
                     raise Exception("Could not retrieve video info. The video may be unavailable or private.")
                 ydl.download([url])
+
+        files_before = set(os.listdir(output_folder))
 
         try:
             try:
@@ -421,6 +444,13 @@ class App(ctk.CTk):
                         raise e
                 else:
                     raise
+
+            # Verify a file was actually saved
+            files_after = set(os.listdir(output_folder))
+            new_files = [f for f in files_after - files_before if not f.endswith(".part")]
+            if not new_files:
+                raise Exception("Download appeared to succeed but no file was saved. ffmpeg may be missing or the format is unsupported.")
+
             self._progress = 1.0
             self.after(0, lambda: self.progress_bar.set(1.0))
             self.after(0, lambda: self.set_status(f"✅  Done! Saved to: {output_folder}", self.t["success"]))
